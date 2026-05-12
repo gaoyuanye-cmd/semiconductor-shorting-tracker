@@ -1,51 +1,32 @@
 import yfinance as yf
 import pandas as pd
-from pandas_datareader import data as pdr
 from datetime import datetime, timedelta
+from transformer import rolling_zscore
 
 def fetch_daily_indicators():
     end = datetime.today()
-    start = end - timedelta(days=60)
+    start = end - timedelta(days=120)
+
     today = end.strftime('%Y-%m-%d')
 
-    # US10Y (^TNX) -> 收益率百分比
-    tnx = yf.Ticker("^TNX")
-    us10y = tnx.history(start=start, end=end)['Close'].iloc[-1] / 100
-
-    # SOX & QQQ
     sox = yf.Ticker("^SOX").history(start=start, end=end)['Close']
     qqq = yf.Ticker("QQQ").history(start=start, end=end)['Close']
-    sox_latest, qqq_latest = sox.iloc[-1], qqq.iloc[-1]
-    sox_ret = (sox.iloc[-1] / sox.iloc[-21] - 1) * 100 if len(sox) >= 21 else 0
-    qqq_ret = (qqq.iloc[-1] / qqq.iloc[-21] - 1) * 100 if len(qqq) >= 21 else 0
-    sox_relative = sox_ret - qqq_ret
+    vix = yf.Ticker("^VIX").history(start=start, end=end)['Close']
+    usdjpy = yf.Ticker("JPY=X").history(start=start, end=end)['Close']
+    tnx = yf.Ticker("^TNX").history(start=start, end=end)['Close']
 
-    # 连续弱势天数（最近5日）
-    weak_days = 0
-    for i in range(1, min(6, len(sox)-1)):
-        if (sox.iloc[-i] / sox.iloc[-i-1]) < (qqq.iloc[-i] / qqq.iloc[-i-1]):
-            weak_days += 1
-        else:
-            break
+    sox_ret = sox.pct_change().dropna()
+    qqq_ret = qqq.pct_change().dropna()
 
-    # VIX
-    vix = yf.Ticker("^VIX").history(start=start, end=end)['Close'].iloc[-1]
+    sox_z = rolling_zscore(sox_ret)
+    qqq_z = rolling_zscore(qqq_ret)
 
-    # USDJPY
-    usdjpy = yf.Ticker("JPY=X").history(start=start, end=end)['Close'].iloc[-1]
-
-    # 日本10年国债（FRED）
-    try:
-        japan10y = pdr.DataReader("IRLTLT01JPM156N", "fred", start, end)['IRLTLT01JPM156N'].iloc[-1]
-    except:
-        japan10y = None
+    sox_relative_z = sox_z - qqq_z
 
     return {
-        'date': today,
-        'us10y': us10y,
-        'sox_relative': sox_relative,
-        'weak_days': weak_days,
-        'vix': vix,
-        'usdjpy': usdjpy,
-        'japan10y': japan10y
+        "date": today,
+        "sox_relative_z": sox_relative_z,
+        "vix": vix.iloc[-1],
+        "us10y": tnx.iloc[-1] / 100,
+        "usdjpy": usdjpy.iloc[-1],
     }
