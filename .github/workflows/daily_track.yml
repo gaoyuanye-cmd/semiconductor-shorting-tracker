@@ -4,8 +4,10 @@ on:
   schedule:
     - cron: '0 0 * * *'
   workflow_dispatch:
+
 permissions:
   contents: write
+
 jobs:
   track:
     runs-on: ubuntu-latest
@@ -15,11 +17,31 @@ jobs:
         with:
           python-version: '3.10'
       - run: pip install -r requirements.txt
-      - run: python src/main.py
+
+      # 1. 生成原始报告
+      - name: Generate report
+        run: python src/main.py
+
+      # 2. 调用 DeepSeek 分析报告（新增）
+      - name: DeepSeek analysis
+        run: python deepseek_analyzer.py
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+
+      # 3. 发送报告+分析到钉钉（修改了 notifier.py）
+      - name: Send to DingTalk
+        run: python notifier.py
+        env:
+          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+          DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+
+      # 4. 提交更新（报告和分析结果都提交到仓库）
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "bot@users.noreply.github.com"
           git add reports/ data/daily_indicators.csv
           git diff --staged --quiet || git commit -m "Auto update $(date +'%Y-%m-%d')"
-          git push
+          git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+        # 如果之前 PAT 没配置，可以改用默认 token（需 permissions: contents: write）
+        # 这里假设你已设置 PAT_TOKEN；若没有，可简化成 git push
