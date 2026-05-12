@@ -1,7 +1,7 @@
 import pandas as pd
-from src.fetcher import fetch_daily_indicators
-from src.analyzer import analyze
-from src.reporter import generate_report
+from fetcher import fetch_daily_indicators
+from analyzer import analyze
+from reporter import generate_report
 
 def main():
     daily = fetch_daily_indicators()
