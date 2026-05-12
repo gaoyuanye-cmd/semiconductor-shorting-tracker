@@ -8,7 +8,7 @@ def fetch_daily_indicators():
     start = end - timedelta(days=60)
     today = end.strftime('%Y-%m-%d')
 
-    # US10Y
+    # US10Y (^TNX) -> 收益率百分比
     tnx = yf.Ticker("^TNX")
     us10y = tnx.history(start=start, end=end)['Close'].iloc[-1] / 100
 
@@ -16,8 +16,8 @@ def fetch_daily_indicators():
     sox = yf.Ticker("^SOX").history(start=start, end=end)['Close']
     qqq = yf.Ticker("QQQ").history(start=start, end=end)['Close']
     sox_latest, qqq_latest = sox.iloc[-1], qqq.iloc[-1]
-    sox_ret = (sox.iloc[-1] / sox.iloc[-21] - 1) * 100 if len(sox)>=21 else 0
-    qqq_ret = (qqq.iloc[-1] / qqq.iloc[-21] - 1) * 100 if len(qqq)>=21 else 0
+    sox_ret = (sox.iloc[-1] / sox.iloc[-21] - 1) * 100 if len(sox) >= 21 else 0
+    qqq_ret = (qqq.iloc[-1] / qqq.iloc[-21] - 1) * 100 if len(qqq) >= 21 else 0
     sox_relative = sox_ret - qqq_ret
 
     # 连续弱势天数（最近5日）
