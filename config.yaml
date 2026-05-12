@@ -2,4 +2,4 @@ scoring:
   warning_score: 1
   high_risk_score: 2
   systemic_score: 3
-  signal_threshold: 6
+  signal_threshold: 2.3
